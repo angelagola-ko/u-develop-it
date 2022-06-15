@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const express = require("express");
 const { application } = require('express');
 const inputCheck = require('./utils/inputCheck');
+const { resourceLimits } = require('worker_threads');
 const PORT = process.env.PORT || 3030;
 const app = express();
 
@@ -169,6 +170,38 @@ app.post('/api/candidate', ({ body }, res) => {
         });
     });
 });
+
+//Update a candidate's party
+app.put('/api/candidate/:id', (req,res) => {
+    const sql = `UPDATE candidates SET party_id = ?
+                WHERE id = ?`;
+    const errors = inputCheck(req.body, 'party_id');
+
+    if (errors) {
+        res.status(400).json({ errors: errors });
+        return;
+    }
+    
+    const params = [req.body.party_id, req.params.id];
+    db.query(sql, params, (err,result) => {
+        if (err) {
+            res.status(400).json({ error: err.message});
+            //check if a record was found
+        } else if (!result.affectedRows) {
+            res.json({
+                message: 'Candidate not found'
+            });
+        } else {
+            res.json({
+                message: 'success',
+                data: req.body,
+                changes: result.affectedRows
+            });
+        }
+    });
+});
+
+
 // db.query(`DELETE FROM candidates WHERE id= ?`, 1, (err,result) => {
 //     if (err) {
 //         console.log(err);
